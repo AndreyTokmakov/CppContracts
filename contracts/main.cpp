@@ -12,6 +12,7 @@ Description : Coroutines
 #include <format>
 #include <cmath>
 #include <algorithm>
+#include <memory>
 
 #include <string>
 #include <string_view>
@@ -53,6 +54,13 @@ namespace contracts_tests
 
     double divide(const int numerator, const int denominator)
         pre(denominator != 0)
+    {
+        return numerator / denominator;
+    }
+
+    double divide_post(const int numerator, const int denominator)
+        pre(denominator != 0)
+        post (r: r * denominator == numerator)
     {
         return numerator / denominator;
     }
@@ -100,7 +108,9 @@ namespace contracts_tests
     void test_Divide()
     {
         std::cout << divide(10, 2) << std::endl;
+        std::cout << divide_post(10, 2) << std::endl;
         std::cout << divide(10, 0) << std::endl;
+        std::cout << divide_post(10, 0) << std::endl;
 
         /*
         5
@@ -279,6 +289,85 @@ namespace Contracts::Class_Methods
     }
 }
 
+namespace post_condition_checks
+{
+    std::vector<int> sort_copy(std::vector<int> values, const bool shallFail = false)
+        post(result: std::ranges::is_sorted(result))
+    {
+        if (!shallFail) {
+            std::ranges::sort(values);
+        }
+        return values;
+    }
+
+    std::vector<int> make_vector(const size_t size, const size_t capacity)
+        post(res: res.size() == size)
+        post(res: res.capacity() >= capacity)
+    {
+        return std::vector<int>(size);
+    }
+
+    std::unique_ptr<int> make_value(int v)
+    {
+        return v > 0 ? std::make_unique<int>(v) : nullptr;
+    }
+
+    std::unique_ptr<int> makeValue(int v)
+        post(res: res != nullptr)
+    {
+        return make_value(v);
+    }
+
+    void test_single()
+    {
+        sort_copy({2,3,1});
+        std::cout << std::string(120, '=') << std::endl;
+        sort_copy({2,3,1}, true);
+
+        /*
+        ========================================================================================================================
+        Contract violation
+            File: /home/andtokm/DiskS/ProjectsUbuntu/CppContracts/contracts/main.cpp
+            Line: 294
+            Function: std::vector<int> post_condition_checks::sort_copy(std::vector<int>, bool)
+            Comment: std::ranges::is_sorted(result)
+        terminate called without an active exception
+        */
+    }
+
+    void test_multiple()
+    {
+        make_vector(5, 5);
+        /*
+        ========================================================================================================================
+        Contract violation
+            File: /home/andtokm/DiskS/ProjectsUbuntu/CppContracts/contracts/main.cpp
+            Line: 304
+            Function: std::vector<int> post_condition_checks::make_vector(size_t, size_t)
+            Comment: res.capacity() >= capacity
+        terminate called without an active exception
+        */
+    }
+
+    void test_move_semantics()
+    {
+        const auto _ = makeValue(10);
+        std::cout << std::string(120, '=') << std::endl;
+        const auto _ = makeValue(0);
+        /**
+        ========================================================================================================================
+        Contract violation
+            File: /home/andtokm/DiskS/ProjectsUbuntu/CppContracts/contracts/main.cpp
+            Line: 316
+            Function: std::unique_ptr<int> post_condition_checks::makeValue(int)
+            Comment: res != nullptr
+        terminate called without an active exception
+        **/
+    }
+}
+
+
+
 int main([[maybe_unused]] const int argc,
          [[maybe_unused]] char** argv)
 {
@@ -286,12 +375,15 @@ int main([[maybe_unused]] const int argc,
 
     // contracts_tests::test_Send();
     // contracts_tests::test_Divide();
-    contracts_tests::test_GetTopValue();
+    // contracts_tests::test_GetTopValue();
 
     // Contracts::Class_Methods::Test();
     // Contracts::Class_Methods::Test2();
     // Contracts::Class_Methods::Test3();
 
+    // post_condition_checks::test_single();
+    // post_condition_checks::test_multiple();
+    post_condition_checks::test_move_semantics();
 
     return EXIT_SUCCESS;
 }
