@@ -289,7 +289,7 @@ namespace Contracts::Class_Methods
     }
 }
 
-namespace post_condition_checks
+namespace contract_asserts
 {
     std::vector<int> sort_copy(std::vector<int> values, const bool shallFail = false)
         post(result: std::ranges::is_sorted(result))
@@ -366,6 +366,34 @@ namespace post_condition_checks
     }
 }
 
+namespace contract_asserts
+{
+    int func(int value)
+        pre (value >= 0)
+        post (r: r > 0)
+    {
+        contract_assert (value != 5);
+        return value;
+    }
+
+    void assertContractTest()
+    {
+        func(5);
+
+        /**
+        ========================================================================================================================
+        // Contract violation
+            File: /home/andtokm/DiskS/ProjectsUbuntu/CppContracts/contracts/main.cpp
+            Line: 375
+            Function: int contract_asserts::func(int)
+            Comment: value != 5
+        terminate called without an active exception
+        **/
+    }
+}
+
+
+
 
 
 int main([[maybe_unused]] const int argc,
@@ -383,7 +411,9 @@ int main([[maybe_unused]] const int argc,
 
     // post_condition_checks::test_single();
     // post_condition_checks::test_multiple();
-    post_condition_checks::test_move_semantics();
+    // post_condition_checks::test_move_semantics();
+
+    contract_asserts::assertContractTest();
 
     return EXIT_SUCCESS;
 }
